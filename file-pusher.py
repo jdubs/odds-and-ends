@@ -10,16 +10,17 @@ DATASTOREHOST = "localhost"
 #The user we are using to log into the remote systems.
 SYNCUSER = "jw"
 #Number of threads to use.
-MAXTHREADS = 2
+MAXTHREADS = 5
 
 queue = Queue.Queue()
 
 class Server:
   """Server Class for executing a task"""
 
-  def __init__(self, host, user):
-    self.host = host
-    self.user = user
+  def __init__(self, endPointString):
+    splitString = endPointString.split(',')
+    self.host = splitString[0]
+    self.user = splitString[1]
 
   def run(self):
     """ Uses Paramiko to log into a remote system and iniate a SCP transfer of
@@ -32,8 +33,8 @@ class Server:
       stdin, stdout, stderr = ssh.exec_command("scp /var/log/httpd/access_log \
         "+ SYNCUSER +"@"+ DATASTOREHOST +":~/logs/`hostname`/ \
         access-`date +%Y-%m-%d`.log")
-      print '%s - Data Push completed for: %s' % ( datetime.datetime.now(),
-        self.host)
+      print '%s - Data Push completed for: %s via %s' % ( datetime.datetime.now(),
+        self.host, os.getpid())
     except:
       print '%s - Error: %s - for: %s' % ( datetime.datetime.now(),
         sys.exc_info()[0], self.host)
@@ -54,12 +55,11 @@ def loadFile():
         if line.count(',') != 1:
           print "Line %d is malformed: should be Host,User" % (endpointList.tell())
         else:
-          queue.put(line)
+          queue.put(line.rstrip('\n'))
     except IOError:
       print "The file specified does not exist!"
 
 def runJob():
-    print queue.get()
     server = Server(queue.get())
     server.run()
 
