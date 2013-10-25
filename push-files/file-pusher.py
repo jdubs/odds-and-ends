@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-#
-
 import os
 import sys
 import Queue
@@ -62,17 +60,18 @@ def loadFile():
     except IOError:
       print "The file specified does not exist!"
 
-def runJob():
-    server = Server(queue.get())
+def runJob(data):
+    server = Server(data)
     server.run()
+    queue.task_done()
 
 def main():
     loadFile()
     for i in range(MAXTHREADS):
-      p = multiprocessing.Process(target=runJob)
+      p = multiprocessing.Process(target=runJob, args=(queue.get(),))
+      p.daemon = True
       p.start()
-      p.join()
-
+queue.join()
 
 if __name__ == "__main__":
   main()
